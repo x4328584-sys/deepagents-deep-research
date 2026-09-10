@@ -30,17 +30,17 @@ Status meanings:
 | 12 | **PASS** | Destructive SQL prevention | `sqlglot` AST validation permits one read-only statement and rejects DML, DDL, multi-statements, comments, file output, destructive `EXPLAIN`, and unsafe functions. Row limits and timeouts are enforced. Production documentation still requires a DB account with SELECT-only grants for defense in depth. |
 | 13 | **PASS** | Safe CORS configuration | Origins accept JSON/CSV environment forms, reject credentials/path/query/invalid ports, and reject mixed wildcard allowlists. Wildcard mode does not enable credentials. Production allowlisting is documented. |
 | 14 | **PASS** | Logs do not record API keys | Structured logging redacts secrets in strings, mappings, headers, URLs, exceptions, and monitor payloads. No configuration path logs `SecretStr` plaintext; regression tests cover redaction. |
-| 15 | **WARNING** | Secrets in code, Git history, README, tests, and docs | The scanner passed across 99 release files with no token/private-key/non-placeholder credential findings. The repository has zero commits, so there is no historical content to validate; historical assurance must be repeated after commits exist. |
+| 15 | **PASS** | Secrets in code, Git history, README, tests, and docs | The scanner passed across 99 release files and two Git commits with no token/private-key/non-placeholder credential findings. GitHub Actions independently ran the same history-aware scan. |
 | 16 | **PASS** | `.env` is gitignored | `git check-ignore .env` passes and `.env` is untracked. The local file was never printed or copied by the audit. |
 | 17 | **PASS** | `.env.example` contains placeholders only | Automated packaging test proves all credential variables are empty; the secret scanner independently accepts the file. |
 | 18 | **PASS** | Demo Mode requires no third-party service | Full backend tests and E2E Demo workflow passed with LLM/Tavily/RAGFlow keys explicitly blank. Demo covers research events, report generation, listing, and download. |
-| 19 | **WARNING** | Cross-platform PDF | ReportLab/CID-font PDF creation and text extraction pass on Windows without an OS-specific office binary. Linux behavior is designed to be portable but could not be executed because Docker/Linux is unavailable on this host. |
+| 19 | **PASS** | Cross-platform PDF | ReportLab/CID-font PDF creation and text extraction pass on local Windows and on the Ubuntu GitHub Actions runner without an OS-specific office binary. |
 | 20 | **PASS** | Frontend WebSocket reconnect/error/ping | Hook tests verify heartbeat, pong handling, malformed-event errors, reconnect behavior, and capped exponential backoff. |
 | 21 | **PASS** | Frontend Generated Files | Component and App integration tests verify refresh, rendering, encoded download URLs, and update after `task_result`. |
 | 22 | **PASS** | No chain-of-thought exposure | Backend emits only allowlisted, user-facing event fields. Frontend regression test supplies `chain_of_thought` and proves it is not rendered. Production source contains no rendering path for private reasoning. |
-| 23 | **WARNING** | Docker Compose buildability | Compose YAML, service/profile/dependency structure, Dockerfiles, healthchecks, Nginx API/WebSocket/health proxying, and Docker ignore rules pass static tests. Docker/Podman/nerdctl are not installed, so `docker compose config` and image builds could not be executed locally. CI now requires both commands. |
-| 24 | **PASS** | README commands match code | Python, npm, endpoint, environment, Demo/Real Mode, event, and proxy commands were compared to source; all non-Docker commands were executed successfully. Docker instructions match the Compose file but remain covered by item 23's runtime warning. |
-| 25 | **WARNING** | CI passes without real API keys | Every backend/frontend CI-equivalent command passed locally with provider keys blank, and workflow env sets `DEMO_MODE=true`. The workflow also runs secret and Docker gates. No Git remote/commit exists, so an actual GitHub Actions run cannot yet be verified. |
+| 23 | **PASS** | Docker Compose buildability | Compose structure, Dockerfiles, healthchecks, Nginx proxying, and ignore rules pass static tests. GitHub Actions executed `docker compose config --quiet` and successfully built both backend and frontend images on Linux. |
+| 24 | **PASS** | README commands match code | Python, npm, endpoint, environment, Demo/Real Mode, event, proxy, Compose, and Docker build commands were compared to source and executed locally or in GitHub Actions. |
+| 25 | **PASS** | CI passes without real API keys | The GitHub Actions workflow passed with `DEMO_MODE=true` and no real provider keys: backend/frontend quality gates, secret scan, Compose validation, and both Docker builds all succeeded. [Successful run](https://github.com/x4328584-sys/deepagents-deep-research/actions/runs/34432771847). |
 | 26 | **PASS** | No incomplete/mock success path in production | Static scan found no production TODO/FIXME/NotImplemented/hard-coded-success path. The one `pass` is the intentional `WebSocketDisconnect` handler. Mock/fake references are confined to tests; Demo Mode is an explicit supported runtime. Agent execution has a bounded recursion limit. |
 | 27 | **PASS** | No release-blocking unused/duplicate/cyclic code | Ruff reports no unused imports or lint findings, strict mypy passes, imports/compileall pass, and manual dependency review found no circular runtime imports or material duplicate implementation. Runtime dependency manifests are tested for exact synchronization. |
 | 28 | **WARNING** | Documentation claims match implementation | Maintained README, architecture, API, deployment, security, and execution-plan claims were reconciled with source and corrected where necessary. The two requested reference documents are zero-byte files, so their intended external contract cannot be compared or reconstructed without inventing content. |
@@ -58,28 +58,24 @@ Status meanings:
 | Frontend tests | **PASS**, 7/7 in 5 files |
 | Frontend production build | **PASS**, Vite output generated |
 | Frontend dependency audit | **PASS**, 0 vulnerabilities |
-| Secret scan | **PASS** for current tree, 99 release files and 0 Git commits; `.env` ignored |
-| Docker Compose config/build | **WARNING**, executable unavailable on host; static validation passed |
+| Secret scan | **PASS**, 99 release files and 2 Git commits; `.env` ignored |
+| Docker Compose config/build | **PASS** in GitHub Actions; local Docker remains unavailable |
 
 Automated tests: **116 passed / 116 total**. There are **0 FAIL** items.
 
 ## Remaining warnings and release decision
 
-1. Install a Docker-compatible runtime and require `docker compose config
-   --quiet` plus `docker compose build backend frontend` to pass.
-2. Create the first commit/push and require the configured GitHub Actions
-   workflow to pass; repeat the history-aware secret scan afterward.
-3. The two supplied reference Markdown files are empty; obtain their intended
+1. The two supplied reference Markdown files are empty; obtain their intended
    contents if they are authoritative release inputs.
-4. Production remains a single-process, in-memory service without built-in
+2. Production remains a single-process, in-memory service without built-in
    authentication. Deploy only behind the documented authenticated gateway,
    TLS, request-size/rate controls, and a SELECT-only MySQL account.
-5. One third-party Starlette/AnyIO deprecation warning is emitted by the test
+3. One third-party Starlette/AnyIO deprecation warning is emitted by the test
    client; it does not affect runtime behavior but should be watched on the
    next dependency upgrade.
 
-**GitHub release readiness: CONDITIONAL.** The code release candidate has no
-known blocking implementation defect and all locally executable gates are
-green. It is not yet ready to publish as a GitHub release until the Docker
-build and first real CI run pass and a commit/remote history exists for the
-final history-aware secret scan.
+**GitHub release readiness: READY.** The repository is uploaded, the release
+candidate has no known blocking implementation defect, all local gates are
+green, and the keyless GitHub Actions workflow—including Compose validation and
+both Docker image builds—has passed. The remaining warnings above are explicit
+deployment/reference limitations, not release blockers.

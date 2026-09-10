@@ -121,9 +121,9 @@ patterns plus Git tracked-file inspection.
 | 8 | backend test suite | pytest, Ruff, mypy | complete |
 | 9 | responsive React frontend | npm ci, lint, typecheck, Vitest, build | complete |
 | 10 | frontend/backend integration | live local smoke flow | complete |
-| 11 | Docker packaging | Compose validation/build if runtime exists | static complete; local runtime unavailable |
+| 11 | Docker packaging | Compose validation/build if runtime exists | complete in GitHub Actions |
 | 12 | public docs, policies, CI, hygiene | docs review and secret scan | complete |
-| 13 | full acceptance | all available gates green, limitations recorded | complete with release warnings |
+| 13 | full acceptance | all available gates green, limitations recorded | complete |
 
 ## Final verification
 
@@ -137,11 +137,15 @@ patterns plus Git tracked-file inspection.
 - Packaging: editable Python package build/install passed and packaged prompts
   loaded successfully.
 - Docker: Compose YAML, required service/profile/dependency structure, both
-  Dockerfiles, and healthcheck presence passed static validation. Docker is not
-  installed on the execution host, so an image build could not be run locally.
+  Dockerfiles, and healthchecks passed static validation. GitHub Actions also ran
+  `docker compose config` and built both backend and frontend images on Linux;
+  Docker remains unavailable only on the local Windows host.
 - Hygiene: local `.env` is ignored and untracked, runtime data is ignored,
-  token-pattern and non-empty credential-assignment scans are clean, and the
-  newly initialized repository has no commits or remote history to audit.
+  token-pattern and non-empty credential-assignment scans are clean across the
+  current release tree and Git history.
+- CI: the keyless GitHub Actions workflow passed backend tests/lint/typecheck,
+  frontend install/tests/lint/typecheck/build, secret scanning, Compose config,
+  and Docker image builds.
 - Release audit: the final source-first results, 28 item dispositions, executed
   gates, and remaining operational warnings are recorded in
   `RELEASE_CHECKLIST.md`.
