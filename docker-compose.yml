@@ -1,0 +1,77 @@
+name: deepagents-deep-research
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DEMO_MODE: ${DEMO_MODE:-true}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4-flash}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.deepseek.com}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.1}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-research}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-company_data}
+      RAGFLOW_API_URL: ${RAGFLOW_API_URL:-}
+      RAGFLOW_API_KEY: ${RAGFLOW_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      EXTERNAL_TIMEOUT_SECONDS: ${EXTERNAL_TIMEOUT_SECONDS:-20}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
+      MAX_UPLOAD_FILES: ${MAX_UPLOAD_FILES:-10}
+      MAX_EXTRACTED_CHARS: ${MAX_EXTRACTED_CHARS:-200000}
+      MAX_AGENT_STEPS: ${MAX_AGENT_STEPS:-100}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - research-output:/app/output
+      - research-uploads:/app/updated
+      - research-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    profiles: ["real"]
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-company_data}
+      MYSQL_USER: ${MYSQL_USER:-research}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
+    ports:
+      - "${MYSQL_EXPOSE_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql/company_data.sql:/docker-entrypoint-initdb.d/001-company-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  research-output:
+  research-uploads:
+  research-logs:
+  mysql-data:
