@@ -10,7 +10,9 @@ venv/
 node_modules/
 dist/
 output/session_*/
+output/pdf/
 updated/session_*/
+tmp/
 logs/
 .pytest_cache/
 .mypy_cache/
@@ -21,4 +23,3 @@ coverage.xml
 .idea/
 .vscode/
 *.log
-
